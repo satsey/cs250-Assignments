@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{75bf7fe6-744b-4ad3-b51f-e162f5cb6131}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries">
+      <UniqueIdentifier>{6cec658d-b0ab-4aba-a5de-bc99fab40783}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\ImGUI">
+      <UniqueIdentifier>{cf53ac51-1ec3-4f0e-83c1-1a928d11591d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libraries\imgui-master\imgui.cpp">
+      <Filter>Libraries\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libraries\imgui-master\imgui_demo.cpp">
+      <Filter>Libraries\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libraries\imgui-master\imgui_draw.cpp">
+      <Filter>Libraries\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libraries\imgui-master\imgui_impl_glfw_gl3.cpp">
+      <Filter>Libraries\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicHelperClasses\ShaderProgram.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="FragmentShader.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="VertexShader.vert">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\libraries\imgui-master\imconfig.h">
+      <Filter>Libraries\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libraries\imgui-master\imgui.h">
+      <Filter>Libraries\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libraries\imgui-master\imgui_impl_glfw_gl3.h">
+      <Filter>Libraries\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libraries\imgui-master\imgui_internal.h">
+      <Filter>Libraries\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libraries\imgui-master\stb_rect_pack.h">
+      <Filter>Libraries\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libraries\imgui-master\stb_textedit.h">
+      <Filter>Libraries\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libraries\imgui-master\stb_truetype.h">
+      <Filter>Libraries\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicHelperClasses\ShaderProgram.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
