@@ -71,7 +71,9 @@ struct Object
     std::vector<int> allIndices; //index
 
     std::vector<glm::vec3> allVertexNormals; //normals
+
     glm::vec3 colorForAllVertices = glm::vec3(1.f, 0.f, 0.f); //color
+    glm::vec3 colorForNormals = glm::vec3(1.0f, 1.0f, 1.0f);
 
     GLuint s_vao_hdl; //vertex array Object
     GLuint s_vbo_hdl; //vertex buffer object??
@@ -84,13 +86,22 @@ struct Object
     //variables used for computing vertices when loading model
     float unitScale;  //compute the untiScale to Scale model to normalized coordinates
     glm::vec3 center; //compute the centre of the object to translate the object to 0,0,0
+
+    GLuint numOfTriangles{0};
+
+    GLuint ModelDrawMethod{ GL_TRIANGLES };
+    GLuint NormalDrawMethod{ GL_LINES };
 };
+glm::vec3 colorForAllVertices = glm::vec3(1.f, 0.f, 0.f); //color
 
 std::vector<Object> ObjectList; //list of Model Object Data
 
 
 // everything required to update and display object ...
+
+
 static GLuint s_shaderpgm_hdl; //Shader program ID
+
 
 static glm::vec3 s_scale_factors(5.f, 5.f, 5.f); // scale parameters
 static glm::vec3 s_world_position(0.f, 0.f, -10.f); // position in world frame
@@ -140,32 +151,39 @@ struct VtxPosClr {
   glm::vec3 clr; // vertex color coordinates (r, g, b)
 };
 
-void DrawObject() {
+void DrawObject(Object obj) {
 
+    std::vector<glm::vec3> bufferData;
+
+    for (auto& vertex : obj.allVertices)
+    {
+        bufferData.push_back(vertex);
+        bufferData.push_back(obj.colorForAllVertices);
+    }
 
     {
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
-        glGenBuffers(1, &EBO);
+        glGenVertexArrays(1, &obj.s_vao_hdl);
+        glGenBuffers(1, &obj.s_vbo_hdl);
+        glGenBuffers(1, &obj.s_ebo_hdl);
 
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBindVertexArray(obj.s_vao_hdl);
 
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, obj.s_vbo_hdl);
+        glBufferData(GL_ARRAY_BUFFER, bufferData.size() * sizeof(glm::vec3), &bufferData[0], GL_STATIC_DRAW);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
-            &indices[0], GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj.s_ebo_hdl);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj.allIndices.size() * sizeof(GLuint),
+            &obj.allIndices[0], GL_STATIC_DRAW);
 
         // vertex positions
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-        // vertex normals
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 2, (void*)0);
+        // vertex color
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 2, (void*)sizeof(glm::vec3));
         // vertex texture coords
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
+        //glEnableVertexAttribArray(2);
+        //glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
 
         glBindVertexArray(0);
     }
@@ -189,8 +207,45 @@ void DrawObject() {
 	//@todo: IMPLEMENT ME
 }
 
-void DrawNormals()
+void DrawNormals(Object obj)
 {
+    std::vector<glm::vec3> bufferData;
+
+    for (int i = 0; i < obj.allVertices.size(); i++) 
+    {
+        bufferData.push_back(obj.allVertices[i]);
+        bufferData.push_back(obj.colorForNormals);
+
+        bufferData.push_back(obj.allVertexNormals[i]);
+        bufferData.push_back(obj.colorForNormals);
+    }
+
+    {
+        glGenVertexArrays(1, &obj.s_nvao_hdl);
+        glGenBuffers(1, &obj.s_nvbo_hdl);
+        //glGenBuffers(1, &obj.s_nebo_hdl);
+
+        glBindVertexArray(obj.s_vao_hdl);
+
+        glBindBuffer(GL_ARRAY_BUFFER, obj.s_vbo_hdl);
+        glBufferData(GL_ARRAY_BUFFER, bufferData.size() * sizeof(glm::vec3), &bufferData[0], GL_STATIC_DRAW);
+
+        //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, obj.s_ebo_hdl);
+        //glBufferData(GL_ELEMENT_ARRAY_BUFFER, obj.allIndices.size() * sizeof(GLuint),
+        //    &obj.allIndices[0], GL_STATIC_DRAW);
+
+        // vertex positions
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 2, (void*)0);
+        // vertex color
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 2, (void*)sizeof(glm::vec3));
+        // vertex texture coords
+        //glEnableVertexAttribArray(2);
+        //glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
+
+        glBindVertexArray(0);
+    }
 	// create pointer to indices
 	//@todo: IMPLEMENT ME
 
@@ -231,6 +286,7 @@ bool LoadModel(const std::string& path)
 
     glm::vec3 min = { 0,0,0 }; //find the minimum x,y,z
     glm::vec3 max = { 0,0,0 };; //find the maximum x,y,z
+    int numberOfTriangles = 0;
 
     while (1) {
 
@@ -294,6 +350,8 @@ bool LoadModel(const std::string& path)
             obj.allIndices.push_back(vertexIndex[0]);
             obj.allIndices.push_back(vertexIndex[1]);
             obj.allIndices.push_back(vertexIndex[2]);
+
+            numberOfTriangles++;
             //uvIndices.push_back(uvIndex[0]);
             //uvIndices.push_back(uvIndex[1]);
             //uvIndices.push_back(uvIndex[2]);
@@ -303,18 +361,14 @@ bool LoadModel(const std::string& path)
         }
     }
 
-        // else : parse lineHeader
+    // else : parse lineHeader
 
-    // Calculating Center and unit scale
-	//@todo: IMPLEMENT ME
+    obj.numOfTriangles = numberOfTriangles;
 
+// Calculating Center and unit scale
+//@todo: IMPLEMENT ME
 //find center of model
     obj.center = (min + max) / 2.0f;
-    
-//translate vertices of model to centre - can use matrix or just manually minus off obj center
-    for (auto& vertices : obj.allVertices)
-        vertices -= obj.center;
-
 //Calculate unit scale of model - the axis with the largest scale
     float xScale = max.x - min.x;
     float yScale = max.y - min.y;
@@ -323,8 +377,8 @@ bool LoadModel(const std::string& path)
     if (xScale > yScale)
     {
         obj.unitScale = xScale;
-        
-        if(zScale > xScale)
+
+        if (zScale > xScale)
             obj.unitScale = zScale;
     }
     else //yScale > xScale
@@ -334,22 +388,60 @@ bool LoadModel(const std::string& path)
         if (zScale > yScale)
             obj.unitScale = zScale;
     }
+ 
+
+// Offset object to center
+//@todo: IMPLEMENT ME
+//translate vertices of model to centre - can use matrix or just manually minus off obj center
+    for (auto& vertices : obj.allVertices)
+        vertices -= obj.center;
+
+
+
+// Resize object to (1, 1, 1)
+//@todo: IMPLEMENT ME
 //Normalize the model scale to 1 by 1 by 1. - Can use matrix or just manual
     for (auto& vertices : obj.allVertices)
         vertices /= obj.unitScale;
 
     // Calculate vertex normals here
 	//@todo: IMPLEMENT ME
+    for (int vertexPos = 0; vertexPos < obj.allVertices.size(); vertexPos++) //check for each vertex position
+    {
+        glm::vec3 normal = {0,0,0};
+
+        int triangleCount = 0;
+        int indexCount = 0;
+        for (int i = 0; i < obj.allIndices.size(); i++)
+        {
+            if (obj.allIndices[i] == (vertexPos+1) /*plus 1 because vertex index start from 1*/)
+            {
+                glm::vec3 A = obj.allVertices[vertexPos + 1];
+                glm::vec3 B = obj.allVertices[((vertexPos + 1) % 3) + (triangleCount * 3) + 1];
+                glm::vec3 C = obj.allVertices[((vertexPos + 2) % 3) + (triangleCount * 3) + 1];
+
+                glm::vec3 N = glm::cross(B - A, C - A); //vector facing out of model?
+                float sin_alpha = N.length() / (glm::length(B - A) * glm::length(C - A));
+                normal += (glm::normalize(N) * glm::asin(sin_alpha)); //add all the normals of different faces consisting of this vertex position
+            } 
+
+            indexCount++;
+
+            if (indexCount == 3)
+            {
+                indexCount = 0;
+                triangleCount++;
+            }
+        }
+        obj.allVertexNormals.push_back(glm::normalize(normal)); //normalize the final normal and add to vector of normals
+    }
 
 
-    // Offset object to center
-	//@todo: IMPLEMENT ME
+	DrawObject(obj);
+    DrawNormals(obj);
 
-    // Resize object to (1, 1, 1)
-	//@todo: IMPLEMENT ME
+    ObjectList.push_back(obj);
 
-	DrawObject();
-    DrawNormals();
 	return false;
 }
 
@@ -436,6 +528,41 @@ void Init() {
 
   // compile, link and use shader programs
   //@todo: IMPLEMENT ME
+  {
+      std::string Fragmentpath = "./Shaders/FragmentShader.frag";
+      std::string Vertexpath = "./Shaders/vertexShader.frag";
+
+      char* FragmentString;
+      char* VertexString;
+      get_shader_file_contents(Fragmentpath, FragmentString);
+      get_shader_file_contents(Vertexpath, VertexString);
+
+  
+     GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
+     glShaderSource(VertexShaderID, 1, &VertexString, NULL);
+         glCompileShader(VertexShaderID);
+     std::string diag_msg;
+     if (!CheckShaderCompileStatus(VertexShaderID, diag_msg))
+         std::cout << "VertexShader unable to compile: " << diag_msg << std::endl;
+  
+      
+      GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+      glShaderSource(FragmentShaderID, 1, &FragmentString, NULL);
+          glCompileShader(FragmentShaderID);
+      if (!CheckShaderCompileStatus(FragmentShaderID, diag_msg))
+          std::cout << "FragmentShader unable to compile: " << diag_msg << std::endl;
+
+
+      s_shaderpgm_hdl = glCreateProgram();
+      glAttachShader(s_shaderpgm_hdl, VertexShaderID);
+      glAttachShader(s_shaderpgm_hdl, FragmentShaderID);
+      glLinkProgram(s_shaderpgm_hdl);
+      if (!CheckShaderProgramLinkStatus(s_shaderpgm_hdl, diag_msg))
+          std::cout << "ShaderProgram unable to link: " << diag_msg << std::endl;
+
+      glDeleteShader(VertexShaderID);
+      glDeleteShader(FragmentShaderID);
+  }
 
   // Get all models
   {
@@ -478,8 +605,11 @@ void Draw() {
 
   // load vertex and fragment programs to corresponding processors
 	//@todo: IMPLEMENT ME
+  glUseProgram(s_shaderpgm_hdl);
+
   // load "model-to-world-to-view-to-clip" matrix to uniform variable named "uMVP" in vertex shader
 	//@todo: IMPLEMENT ME
+
 
   // transfer vertices from server (GPU) buffers to vertex processer which must (at the very least)
   // compute the clip frame coordinates followed by assembly into triangles ...
@@ -489,6 +619,9 @@ void Draw() {
   //@todo: IMPLEMENT ME
   // Draw triangles
   //@todo: IMPLEMENT ME
+  glBindVertexArray(ObjectList[model].s_vao_hdl);
+  glDrawElements(ObjectList[model].ModelDrawMethod, ObjectList[model].allIndices.size(), GL_UNSIGNED_INT, 0);
+
 
   // programming tip: always reset state - application will be easier to debug ...
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -499,6 +632,8 @@ void Draw() {
   {
 	  // use program to draw normals here
 	  //@todo: IMPLEMENT ME
+      glBindVertexArray(ObjectList[model].s_vao_hdl);
+      glDrawArrays(ObjectList[model].NormalDrawMethod, 0, ObjectList[model].allVertexNormals.size());
   }
 }
 
@@ -560,12 +695,11 @@ void Update() {
 
   // render your GUI
   //@todo: IMPLEMENT ME
-
-  // put the stuff we've been drawing onto the display
-
   {
       ImGui::Render(); //rendering the imgui window
   }
+
+  // put the stuff we've been drawing onto the display
 
 
   glfwSwapBuffers(s_window_handle);
@@ -578,6 +712,8 @@ void Cleanup() {
   // delete all vbo's attached to s_vao_hdl
   GLint max_vtx_attrib = 0;
   glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vtx_attrib);
+
+
   glBindVertexArray(s_vao_hdl);
   for (int i = 0; i < max_vtx_attrib; ++i) {
     GLuint vbo_handle = 0;
@@ -599,6 +735,8 @@ void Cleanup() {
   glDeleteBuffers(1, &s_ebo_hdl);
   glDeleteBuffers(1, &s_nvao_hdl);
   glDeleteBuffers(1, &s_nebo_hdl);
+
+
   glDeleteProgram(s_shaderpgm_hdl);
   glfwDestroyWindow(s_window_handle);
   glfwTerminate();
