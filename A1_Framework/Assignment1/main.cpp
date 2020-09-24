@@ -69,6 +69,7 @@ struct Object
     // everything required to define the geometry of the object ...
     std::vector<glm::vec3> allVertices; //positions
     std::vector<int> allIndices; //index
+
     std::vector<glm::vec3> allVertexNormals; //normals
     glm::vec3 colorForAllVertices = glm::vec3(1.f, 0.f, 0.f); //color
 
@@ -80,11 +81,12 @@ struct Object
     GLuint s_nvbo_hdl; //vertex buffer object??
     GLuint s_nebo_hdl; //Index Buffer Object 
 
-    float unitScale;  //Scale every axis
-    glm::vec3 center; //compute the centre of the object??
+    //variables used for computing vertices when loading model
+    float unitScale;  //compute the untiScale to Scale model to normalized coordinates
+    glm::vec3 center; //compute the centre of the object to translate the object to 0,0,0
 };
 
-std::vector<object> ObjectList; //list of Model Object Data
+std::vector<Object> ObjectList; //list of Model Object Data
 
 
 // everything required to update and display object ...
@@ -219,13 +221,16 @@ bool LoadModel(const std::string& path)
     s_angular_displacement = 0.f; // current angular displacement in degrees
     s_orientation_axis = glm::normalize(glm::vec3(0.f, 0.f, 1.f)); // orientation axis
 
-    Object obj; //create a new Object
+    Object obj; //create a new model Object
 
     FILE* file = fopen(path.c_str(), "r");
     if (file == NULL) {
         printf("Impossible to open the file !\n");
         return false;
     }
+
+    glm::vec3 min = { 0,0,0 }; //find the minimum x,y,z
+    glm::vec3 max = { 0,0,0 };; //find the maximum x,y,z
 
     while (1) {
 
@@ -238,46 +243,104 @@ bool LoadModel(const std::string& path)
         if (strcmp(lineHeader, "v") == 0) {
             glm::vec3 vertex;
             fscanf(file, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z);
-            obj.allVertices.push_back(vertex);
-        }
-        else if (strcmp(lineHeader, "vt") == 0) {
-            glm::vec2 uv;
-            fscanf(file, "%f %f\n", &uv.x, &uv.y);
-            temp_uvs.push_back(uv);
+            obj.allVertices.push_back(vertex); 
 
+            if (obj.allVertices.size() == 1)
+            {
+                min = vertex;
+                max = vertex;
+            }
+            else
+            {
+            //comparing current vertex with minimum value
+                if (min.x > vertex.x)
+                    min.x = vertex.x;
+                if (min.y > vertex.y)
+                    min.y = vertex.y;               
+                if (min.z > vertex.z)
+                    min.z = vertex.z;
+            //comparing current vertex with maximum value
+                if (max.x < vertex.x)
+                    max.x = vertex.x;
+                if (max.y < vertex.y)
+                    max.y = vertex.y;
+                if (max.z < vertex.z)
+                    max.z = vertex.z;
+            }
+            
         }
-        else if (strcmp(lineHeader, "vn") == 0) {
-            glm::vec3 normal;
-            fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
-            temp_normals.push_back(normal);
+        //else if (strcmp(lineHeader, "vt") == 0) {
+        //    glm::vec2 uv;
+        //    fscanf(file, "%f %f\n", &uv.x, &uv.y);
+        //    temp_uvs.push_back(uv);
+        //
+        //}
+        //else if (strcmp(lineHeader, "vn") == 0) {
+        //    glm::vec3 normal;
+        //    fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
+        //    temp_normals.push_back(normal);
+        //
+        //}
 
-        }
         else if (strcmp(lineHeader, "f") == 0) {
             std::string vertex1, vertex2, vertex3;
-            unsigned int vertexIndex[3], uvIndex[3], normalIndex[3];
-            int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &uvIndex[0], &normalIndex[0], &vertexIndex[1], &uvIndex[1], &normalIndex[1], &vertexIndex[2], &uvIndex[2], &normalIndex[2]);
-            if (matches != 9) {
+            unsigned int vertexIndex[3], /*uvIndex[3],*/ normalIndex[3];
+
+            int matches = fscanf(file, "%d//%d %d//%d %d//%d\n", &vertexIndex[0], &normalIndex[0], &vertexIndex[1], &normalIndex[1], &vertexIndex[2], &normalIndex[2]);
+            if (matches != 6) {
                 printf("File can't be read by our simple parser : ( Try exporting with other options\n");
                 return false;
             }
-            vertexIndices.push_back(vertexIndex[0]);
-            vertexIndices.push_back(vertexIndex[1]);
-            vertexIndices.push_back(vertexIndex[2]);
-            uvIndices.push_back(uvIndex[0]);
-            uvIndices.push_back(uvIndex[1]);
-            uvIndices.push_back(uvIndex[2]);
-            normalIndices.push_back(normalIndex[0]);
-            normalIndices.push_back(normalIndex[1]);
-            normalIndices.push_back(normalIndex[2]);
+            obj.allIndices.push_back(vertexIndex[0]);
+            obj.allIndices.push_back(vertexIndex[1]);
+            obj.allIndices.push_back(vertexIndex[2]);
+            //uvIndices.push_back(uvIndex[0]);
+            //uvIndices.push_back(uvIndex[1]);
+            //uvIndices.push_back(uvIndex[2]);
+            //normalIndices.push_back(normalIndex[0]);
+            //normalIndices.push_back(normalIndex[1]);
+            //normalIndices.push_back(normalIndex[2]);
+        }
     }
 
         // else : parse lineHeader
 
     // Calculating Center and unit scale
 	//@todo: IMPLEMENT ME
-      
+
+//find center of model
+    obj.center = (min + max) / 2.0f;
+    
+//translate vertices of model to centre - can use matrix or just manually minus off obj center
+    for (auto& vertices : obj.allVertices)
+        vertices -= obj.center;
+
+//Calculate unit scale of model - the axis with the largest scale
+    float xScale = max.x - min.x;
+    float yScale = max.y - min.y;
+    float zScale = max.z - min.z;
+
+    if (xScale > yScale)
+    {
+        obj.unitScale = xScale;
+        
+        if(zScale > xScale)
+            obj.unitScale = zScale;
+    }
+    else //yScale > xScale
+    {
+        obj.unitScale = yScale;
+
+        if (zScale > yScale)
+            obj.unitScale = zScale;
+    }
+//Normalize the model scale to 1 by 1 by 1. - Can use matrix or just manual
+    for (auto& vertices : obj.allVertices)
+        vertices /= obj.unitScale;
+
     // Calculate vertex normals here
 	//@todo: IMPLEMENT ME
+
 
     // Offset object to center
 	//@todo: IMPLEMENT ME
