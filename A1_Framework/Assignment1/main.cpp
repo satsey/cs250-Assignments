@@ -72,15 +72,15 @@ struct Object
 
     std::vector<glm::vec3> allVertexNormals; //normals
 
-    glm::vec3 colorForAllVertices = glm::vec3(1.f, 0.f, 0.f); //color
+    glm::vec3 colorForAllVertices = glm::vec3(0.f, 0.f, 0.f); //color
     glm::vec3 colorForNormals = glm::vec3(1.0f, 1.0f, 1.0f);
 
     GLuint s_vao_hdl; //vertex array Object
-    GLuint s_vbo_hdl; //vertex buffer object??
+    GLuint s_vbo_hdl; //vertex buffer object
     GLuint s_ebo_hdl; //Index buffer Object
 
     GLuint s_nvao_hdl; //vertex array Object to draw normal
-    GLuint s_nvbo_hdl; //vertex buffer object??
+    GLuint s_nvbo_hdl; //vertex buffer object
     GLuint s_nebo_hdl; //Index Buffer Object 
 
     //variables used for computing vertices when loading model
@@ -105,7 +105,7 @@ static GLuint s_shaderpgm_hdl; //Shader program ID
 
 
 static glm::vec3 s_scale_factors(5.f, 5.f, 5.f); // scale parameters
-static glm::vec3 s_world_position(0.f, 0.f, -10.f); // position in world frame
+static glm::vec3 s_world_position(0.f, 0.f, -2.f); // position in world frame
 static GLfloat s_angular_displacement = 0.f; // current angular displacement in degrees
 
 static glm::vec3 s_orientation_axis = glm::normalize(glm::vec3(0.f, 0.f, 1.f)); // orientation axis
@@ -139,8 +139,9 @@ int main() {
 
   while (!glfwWindowShouldClose(s_window_handle))
   {
-    Draw(); // render graphics task i
     Update(); // create graphics task i+1
+    Draw(); // render graphics task i
+
   }
 
   ImGui_ImplGlfwGL3_Shutdown();
@@ -179,13 +180,13 @@ void DrawObject(Object obj) {
         // vertex positions
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 2, (void*)0);
-        // vertex color
+        // vertex normals used for colors
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 2, (void*)sizeof(glm::vec3));
         // vertex texture coords
         //glEnableVertexAttribArray(2);
         //glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
-
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
     }
 
@@ -273,7 +274,7 @@ bool LoadModel(const std::string& path)
 	//@todo: IMPLEMENT ME
 
     s_scale_factors = glm::vec3(5.f, 5.f, 5.f); // scale parameters
-    s_world_position = glm::vec3(0.f, 0.f, -10.f); // position in world frame
+    s_world_position = glm::vec3(0.f, 0.f, -2.f); // position in world frame
     s_angular_displacement = 0.f; // current angular displacement in degrees
     s_orientation_axis = glm::normalize(glm::vec3(0.f, 0.f, 1.f)); // orientation axis
 
@@ -389,6 +390,38 @@ bool LoadModel(const std::string& path)
 
     obj.numOfTriangles = numberOfTriangles;
 
+    // Calculate vertex normals here
+//@todo: IMPLEMENT ME
+    for (int vertexPos = 0; vertexPos < obj.allVertices.size(); vertexPos++) //check for each vertex position
+    {
+        glm::vec3 normal = { 0,0,0 };
+
+        int triangleCount = 0;
+        int indexCount = 0;
+        for (int i = 0; i < obj.allIndices.size(); i++)
+        {
+            if (obj.allIndices[i] == (vertexPos + 1) /*plus 1 because vertex index start from 1*/)
+            {
+                glm::vec3 A = obj.allVertices[obj.allIndices[i] - 1];
+                glm::vec3 B = obj.allVertices[obj.allIndices[((i + 1) % 3) + (triangleCount * 3)] - 1];
+                glm::vec3 C = obj.allVertices[obj.allIndices[((i + 2) % 3) + (triangleCount * 3)] - 1];
+
+                glm::vec3 N = glm::cross(B - A, C - A); //vector facing out of model?
+                float sin_alpha = N.length() / (glm::length(B - A) * glm::length(C - A));
+                normal += (glm::normalize(N) * glm::asin(sin_alpha)); //add all the normals of different faces consisting of this vertex position
+            }
+
+            indexCount++;
+
+            if (indexCount == 3)
+            {
+                indexCount = 0;
+                triangleCount++;
+            }
+        }
+        obj.allVertexNormals.push_back(glm::normalize(normal)); //normalize the final normal and add to vector of normals
+    }
+
 // Calculating Center and unit scale
 //@todo: IMPLEMENT ME
 //find center of model
@@ -428,37 +461,7 @@ bool LoadModel(const std::string& path)
     for (auto& vertices : obj.allVertices)
         vertices /= obj.unitScale;
 
-    // Calculate vertex normals here
-	//@todo: IMPLEMENT ME
-    for (int vertexPos = 0; vertexPos < obj.allVertices.size(); vertexPos++) //check for each vertex position
-    {
-        glm::vec3 normal = {0,0,0};
 
-        int triangleCount = 0;
-        int indexCount = 0;
-        for (int i = 0; i < obj.allIndices.size(); i++)
-        {
-            if (obj.allIndices[i] == (vertexPos + 1) /*plus 1 because vertex index start from 1*/)
-            {
-                glm::vec3 A = obj.allVertices[obj.allIndices[i] - 1];
-                glm::vec3 B = obj.allVertices[obj.allIndices[((i + 1) % 3) + (triangleCount * 3)] - 1];
-                glm::vec3 C = obj.allVertices[obj.allIndices[((i + 2) % 3) + (triangleCount * 3)] - 1];
-
-                glm::vec3 N = glm::cross(B - A, C - A); //vector facing out of model?
-                float sin_alpha = N.length() / (glm::length(B - A) * glm::length(C - A));
-                normal += (glm::normalize(N) * glm::asin(sin_alpha)); //add all the normals of different faces consisting of this vertex position
-            } 
-
-            indexCount++;
-
-            if (indexCount == 3)
-            {
-                indexCount = 0;
-                triangleCount++;
-            }
-        }
-        obj.allVertexNormals.push_back(glm::normalize(normal)); //normalize the final normal and add to vector of normals
-    }
 
 
 	DrawObject(obj);
@@ -614,7 +617,7 @@ void Init() {
 }
 
 void Draw() {
-  glClearColor(0.f, 0.f, 0.f, 1.f); // clear drawing surface with this color
+  glClearColor(1.f, 1.f, 0.f, 1.f); // clear drawing surface with this color
   glEnable(GL_DEPTH_TEST);
   //// cull back-faced or clockwise oriented primitives
   //glEnable(GL_CULL_FACE);
@@ -643,21 +646,55 @@ void Draw() {
   //@todo: IMPLEMENT ME
   // Draw triangles
   //@todo: IMPLEMENT ME
-  glBindVertexArray(ObjectList[model].s_vao_hdl);
-  glDrawElements(ObjectList[model].ModelDrawMethod, ObjectList[model].allIndices.size(), GL_UNSIGNED_INT, 0);
-
-
-  // programming tip: always reset state - application will be easier to debug ...
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-  glUseProgram(0);
-
-  if (drawNormals)
+  if (model >= 0)
   {
-	  // use program to draw normals here
-	  //@todo: IMPLEMENT ME
+      //{
+      //    static float arr[18] = { -0.5, 0, -1, 0.0, 0.0, 0.0, 
+      //                    0.5, 0.0, -1, 0.0, 0.0, 0.0,
+      //                    0.0 , 0.5, -1, 0.0, 0.0, 0.0 };
+      //    static GLuint buffer;
+      //    static int value = 1;
+      //
+      //    if (value == 1)
+      //    {
+      //        glGenBuffers(1, &buffer);
+      //        glBindBuffer(GL_ARRAY_BUFFER, buffer);
+      //        glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), arr, GL_STATIC_DRAW);
+      //
+      //        // vertex positions
+      //        glEnableVertexAttribArray(0);
+      //        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 2, (void*)0);
+      //        // vertex color
+      //        glEnableVertexAttribArray(1);
+      //        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 2, (void*)sizeof(glm::vec3));
+      //
+      //        value = 0;
+      //    }
+      //
+      //    {
+      //        glBindBuffer(GL_ARRAY_BUFFER, buffer);
+      //        glDrawArrays(GL_TRIANGLES, 0, 3);
+      //    }
+      //}
+
+
       glBindVertexArray(ObjectList[model].s_vao_hdl);
-      glDrawArrays(ObjectList[model].NormalDrawMethod, 0, ObjectList[model].allVertexNormals.size());
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ObjectList[model].s_ebo_hdl);
+      glDrawElements(ObjectList[model].ModelDrawMethod, ObjectList[model].allIndices.size(), GL_UNSIGNED_INT, 0);
+
+      // programming tip: always reset state - application will be easier to debug ...
+      //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+      glBindVertexArray(0);
+     // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+      glUseProgram(0);
+
+      if (drawNormals)
+      {
+          // use program to draw normals here
+          //@todo: IMPLEMENT ME
+          glBindVertexArray(ObjectList[model].s_vao_hdl);
+          glDrawArrays(ObjectList[model].NormalDrawMethod, 0, ObjectList[model].allVertexNormals.size());
+      }
   }
 }
 
@@ -692,9 +729,9 @@ void Update() {
       {
           ImGui::Text("Projection");
           {
-              ImGui::DragFloat("FOV degrees", &fov);
-              ImGui::DragFloat("Near Plane", &near);
-              ImGui::DragFloat("Far Plane", &far);
+              ImGui::DragFloat("FOV degrees", &fov, 0.2f, 0.1f, 180.0f);
+              ImGui::DragFloat("Near Plane", &near, 0.2f, 0.1f);
+              ImGui::DragFloat("Far Plane", &far, 0.2f, 0.1f);
           }
           ImGui::TreePop();
       }
@@ -703,8 +740,9 @@ void Update() {
           //Model Selection
           ImGui::Combo("Model", &model, &modelList[0], modelList.size());
 
-          ImGui::DragFloat3("Scale", glm::value_ptr(s_scale_factors), 0.1f, 100.0f);
-          ImGui::DragFloat3("Translate", glm::value_ptr(s_world_position), -1000.0f, 1000.0f);
+          ImGui::DragFloat3("Scale", glm::value_ptr(s_scale_factors), 2);
+          ImGui::DragFloat3("Translate", glm::value_ptr(s_world_position), 2);
+          ImGui::DragFloat("Rotate X axis", &s_angular_displacement);
           ImGui::Checkbox("Draw Normals", &drawNormals);
           ImGui::TreePop();
       }
