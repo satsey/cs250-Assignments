@@ -360,7 +360,7 @@ bool LoadModel(const std::string& path)
                 int position = str.find("/");
                 if (position != std::string::npos)
                 {
-                    str = str.substr(position, str.size() - 1);
+                    str = str.substr(0, position);
                 }
                 float vert = std::stof(str);
                 obj.allIndices.push_back(vert);
