@@ -92,6 +92,7 @@ struct Object
     GLuint ModelDrawMethod{ GL_TRIANGLES };
     GLuint NormalDrawMethod{ GL_LINES };
 };
+
 glm::vec3 colorForAllVertices = glm::vec3(1.f, 0.f, 0.f); //color
 
 std::vector<Object> ObjectList; //list of Model Object Data
@@ -109,8 +110,8 @@ static GLfloat s_angular_displacement = 0.f; // current angular displacement in 
 
 static glm::vec3 s_orientation_axis = glm::normalize(glm::vec3(0.f, 0.f, 1.f)); // orientation axis
 
-static glm::mat4 s_proj_mtx; // perspective xform - computed once for the whole scene
-static glm::mat4 s_view_mtx; // view xform - again computed once for the whole scene
+static glm::mat4 s_proj_mtx = glm::mat4(1.f); // perspective xform - computed once for the whole scene
+static glm::mat4 s_view_mtx = glm::mat4(1.f); // view xform - again computed once for the whole scene
 static glm::mat4 s_mvp_xform = glm::mat4(1.f); // model-world-view-clip transform matrix ...
 
 static bool drawNormals = false; //parameter for the Imgui to draw the normals for the model
@@ -122,15 +123,15 @@ static float far = 200.f;
 std::vector<const char*> modelList;
 static int model = -1;
 
-
-
 int main() {
+
   Init(); // very first update
 
   {
-     // ImGui::CreateContext();
+      //ImGui::CreateContext();
       ImGui_ImplGlfwGL3_Init(s_window_handle, true);
   }
+
 
   // Load Default Model
   //LoadModel("assets/cube.obj");
@@ -155,10 +156,10 @@ void DrawObject(Object obj) {
 
     std::vector<glm::vec3> bufferData;
 
-    for (auto& vertex : obj.allVertices)
+    for (int i = 0; i < obj.allVertexNormals.size(); i++)
     {
-        bufferData.push_back(vertex);
-        bufferData.push_back(obj.colorForAllVertices);
+        bufferData.push_back(obj.allVertices[i]);
+        bufferData.push_back(obj.allVertexNormals[i]);
     }
 
     {
@@ -442,7 +443,7 @@ bool LoadModel(const std::string& path)
 
     ObjectList.push_back(obj);
 
-	return false;
+	return true;
 }
 
 /*
@@ -609,7 +610,7 @@ void Draw() {
 
   // load "model-to-world-to-view-to-clip" matrix to uniform variable named "uMVP" in vertex shader
 	//@todo: IMPLEMENT ME
-
+  glUniformMatrix4fv(glGetUniformLocation(s_shaderpgm_hdl, "uMVP"), 1, GL_FALSE, glm::value_ptr(s_mvp_xform));
 
   // transfer vertices from server (GPU) buffers to vertex processer which must (at the very least)
   // compute the clip frame coordinates followed by assembly into triangles ...
@@ -692,6 +693,14 @@ void Update() {
 
   // compute model-view-projection transformation matrix (this was covered in CS 250) ...
   //@todo: IMPLEMENT ME
+  glm::mat4 modelMatrix = glm::mat4(1.0f);
+  modelMatrix = glm::translate(modelMatrix, s_world_position);
+  modelMatrix = glm::rotate(modelMatrix, glm::radians(s_angular_displacement), s_orientation_axis);
+  modelMatrix = glm::scale(modelMatrix, s_scale_factors);
+
+  s_proj_mtx = glm::perspective(glm::radians(fov), (float)(s_window_width / s_window_height), near, far);
+
+  s_mvp_xform = s_proj_mtx * s_view_mtx * modelMatrix;
 
   // render your GUI
   //@todo: IMPLEMENT ME
@@ -713,28 +722,30 @@ void Cleanup() {
   GLint max_vtx_attrib = 0;
   glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vtx_attrib);
 
+  for (auto& model : ObjectList)
+  {
+      glBindVertexArray(model.s_vao_hdl);
+      for (int i = 0; i < max_vtx_attrib; ++i) {
+          GLuint vbo_handle = 0;
+          glGetVertexAttribIuiv(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &vbo_handle);
+          if (vbo_handle > 0) {
+              glDeleteBuffers(1, &vbo_handle);
+          }
+      }
+      glBindVertexArray(model.s_nvao_hdl);
+      for (int i = 0; i < max_vtx_attrib; ++i) {
+          GLuint vbo_handle = 0;
+          glGetVertexAttribIuiv(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &vbo_handle);
+          if (vbo_handle > 0) {
+              glDeleteBuffers(1, &vbo_handle);
+          }
+      }
 
-  glBindVertexArray(s_vao_hdl);
-  for (int i = 0; i < max_vtx_attrib; ++i) {
-    GLuint vbo_handle = 0;
-    glGetVertexAttribIuiv(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &vbo_handle);
-    if (vbo_handle > 0) {
-      glDeleteBuffers(1, &vbo_handle);
-    }
+      glDeleteBuffers(1, &model.s_vao_hdl);
+      glDeleteBuffers(1, &model.s_ebo_hdl);
+      glDeleteBuffers(1, &model.s_nvao_hdl);
+      glDeleteBuffers(1, &model.s_nebo_hdl);
   }
-  glBindVertexArray(s_nvao_hdl);
-  for (int i = 0; i < max_vtx_attrib; ++i) {
-    GLuint vbo_handle = 0;
-    glGetVertexAttribIuiv(i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &vbo_handle);
-    if (vbo_handle > 0) {
-      glDeleteBuffers(1, &vbo_handle);
-    }
-  }
-
-  glDeleteBuffers(1, &s_vao_hdl);
-  glDeleteBuffers(1, &s_ebo_hdl);
-  glDeleteBuffers(1, &s_nvao_hdl);
-  glDeleteBuffers(1, &s_nebo_hdl);
 
 
   glDeleteProgram(s_shaderpgm_hdl);
