@@ -157,7 +157,6 @@
     <ClCompile Include="..\libraries\imgui-master\imgui_draw.cpp" />
     <ClCompile Include="..\libraries\imgui-master\imgui_impl_glfw_gl3.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="GraphicHelperClasses\ShaderProgram.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="FragmentShader.frag" />
@@ -171,7 +170,6 @@
     <ClInclude Include="..\libraries\imgui-master\stb_rect_pack.h" />
     <ClInclude Include="..\libraries\imgui-master\stb_textedit.h" />
     <ClInclude Include="..\libraries\imgui-master\stb_truetype.h" />
-    <ClInclude Include="GraphicHelperClasses\ShaderProgram.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

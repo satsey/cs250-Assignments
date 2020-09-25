@@ -341,16 +341,39 @@ bool LoadModel(const std::string& path)
 
         else if (strcmp(lineHeader, "f") == 0) {
             std::string vertex1, vertex2, vertex3;
-            unsigned int vertexIndex[3], /*uvIndex[3],*/ normalIndex[3];
+            //unsigned int vertexIndex[3], /*uvIndex[3],*/ normalIndex[3];
 
-            int matches = fscanf(file, "%d//%d %d//%d %d//%d\n", &vertexIndex[0], &normalIndex[0], &vertexIndex[1], &normalIndex[1], &vertexIndex[2], &normalIndex[2]);
-            if (matches != 6) {
-                printf("File can't be read by our simple parser : ( Try exporting with other options\n");
-                return false;
+            //int matches = fscanf(file, "%d//%d %d//%d %d//%d\n", &vertexIndex[0], &normalIndex[0], &vertexIndex[1], &normalIndex[1], &vertexIndex[2], &normalIndex[2]);
+            char string[128];
+
+            for (int i = 0; i < 3; i++)
+            {
+
+                fscanf(file, "%s", string);
+               // while (fscanf(file, "%s", string))
+               // {
+               //     if (str.compare("") != 0)
+               //         break;
+               // }
+                std::string str(string);
+
+                int position = str.find("/");
+                if (position != std::string::npos)
+                {
+                    str = str.substr(position, str.size() - 1);
+                }
+                float vert = std::stof(str);
+                obj.allIndices.push_back(vert);
             }
-            obj.allIndices.push_back(vertexIndex[0]);
-            obj.allIndices.push_back(vertexIndex[1]);
-            obj.allIndices.push_back(vertexIndex[2]);
+            
+
+            //if (matches != 6) {
+            //    printf("File can't be read by our simple parser : ( Try exporting with other options\n");
+            //    return false;
+            //}
+            //obj.allIndices.push_back(vertexIndex[0]);
+            //obj.allIndices.push_back(vertexIndex[1]);
+            //obj.allIndices.push_back(vertexIndex[2]);
 
             numberOfTriangles++;
             //uvIndices.push_back(uvIndex[0]);
@@ -415,11 +438,11 @@ bool LoadModel(const std::string& path)
         int indexCount = 0;
         for (int i = 0; i < obj.allIndices.size(); i++)
         {
-            if (obj.allIndices[i] == (vertexPos+1) /*plus 1 because vertex index start from 1*/)
+            if (obj.allIndices[i] == (vertexPos + 1) /*plus 1 because vertex index start from 1*/)
             {
-                glm::vec3 A = obj.allVertices[vertexPos + 1];
-                glm::vec3 B = obj.allVertices[((vertexPos + 1) % 3) + (triangleCount * 3) + 1];
-                glm::vec3 C = obj.allVertices[((vertexPos + 2) % 3) + (triangleCount * 3) + 1];
+                glm::vec3 A = obj.allVertices[obj.allIndices[i] - 1];
+                glm::vec3 B = obj.allVertices[obj.allIndices[((i + 1) % 3) + (triangleCount * 3)] - 1];
+                glm::vec3 C = obj.allVertices[obj.allIndices[((i + 2) % 3) + (triangleCount * 3)] - 1];
 
                 glm::vec3 N = glm::cross(B - A, C - A); //vector facing out of model?
                 float sin_alpha = N.length() / (glm::length(B - A) * glm::length(C - A));
@@ -531,7 +554,7 @@ void Init() {
   //@todo: IMPLEMENT ME
   {
       std::string Fragmentpath = "./Shaders/FragmentShader.frag";
-      std::string Vertexpath = "./Shaders/vertexShader.frag";
+      std::string Vertexpath = "./Shaders/vertexShader.vert";
 
       char* FragmentString;
       char* VertexString;
