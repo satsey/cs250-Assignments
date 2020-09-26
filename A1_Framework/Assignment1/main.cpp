@@ -123,6 +123,10 @@ static float far = 200.f;
 std::vector<const char*> modelList;
 static int model = -1;
 
+
+static GLuint buffer;
+
+
 int main() {
 
   Init(); // very first update
@@ -135,6 +139,35 @@ int main() {
 
   // Load Default Model
   //LoadModel("assets/cube.obj");
+  GLuint vao;
+  
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  static float arr[18] = {          -0.5, 0, -1,  1.0, 1.0, 1.0,
+                                   0.5, 0.0, -1, 1.0, 1.0, 0.0,
+                                   0.0 , 0.5, -1, 1.0, 0.0, 0.0 };
+
+
+  static int value = 1;
+
+  if (value == 1)
+  {
+      glGenBuffers(1, &buffer);
+      glBindBuffer(GL_ARRAY_BUFFER, buffer);
+      glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(float), arr, GL_STATIC_DRAW);
+
+      // vertex positions
+      glEnableVertexAttribArray(0);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+      // vertex color
+      glEnableVertexAttribArray(1);
+      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)3);
+
+
+      glUniformMatrix4fv(glGetUniformLocation(s_shaderpgm_hdl, "uMVP"), 1, GL_FALSE, glm::value_ptr(s_mvp_xform));
+      value = 0;
+  }
 
 
   while (!glfwWindowShouldClose(s_window_handle))
@@ -593,31 +626,31 @@ void Init() {
 
   // Get all models
   {
-      std::string path = "./assets";
-      for (const auto& entry : std::filesystem::directory_iterator(path))
-      {
-          std::cout << entry.path() << std::endl;
-          std::string pathstring = entry.path().u8string();
+      //std::string path = "./assets";
+      //for (const auto& entry : std::filesystem::directory_iterator(path))
+      //{
+      //    std::cout << entry.path() << std::endl;
+      //    std::string pathstring = entry.path().u8string();
 
-          //load model
-          LoadModel(pathstring);
+      //    //load model
+      //    LoadModel(pathstring);
 
-          int num = pathstring.find_last_of("\\\\") + 1;
-          std::string objectName = pathstring.substr(num).c_str();
-          objectName = objectName.substr(0, objectName.find_last_of("."));
+      //    int num = pathstring.find_last_of("\\\\") + 1;
+      //    std::string objectName = pathstring.substr(num).c_str();
+      //    objectName = objectName.substr(0, objectName.find_last_of("."));
 
-          //std::cout << objectName.c_str() << std::endl;
+      //    //std::cout << objectName.c_str() << std::endl;
 
-          char* array = new char[objectName.size() + 1];
-          strcpy(array, objectName.c_str());
-          modelList.push_back(array);
-      }
+      //    char* array = new char[objectName.size() + 1];
+      //    strcpy(array, objectName.c_str());
+      //    modelList.push_back(array);
+      //}
   }
 
 }
 
 void Draw() {
-  glClearColor(1.f, 1.f, 0.f, 1.f); // clear drawing surface with this color
+  glClearColor(0.f, 0.f, 0.f, 1.f); // clear drawing surface with this color
   glEnable(GL_DEPTH_TEST);
   //// cull back-faced or clockwise oriented primitives
   //glEnable(GL_CULL_FACE);
@@ -632,11 +665,11 @@ void Draw() {
 
   // load vertex and fragment programs to corresponding processors
 	//@todo: IMPLEMENT ME
-  glUseProgram(s_shaderpgm_hdl);
+ // glUseProgram(s_shaderpgm_hdl);
 
   // load "model-to-world-to-view-to-clip" matrix to uniform variable named "uMVP" in vertex shader
 	//@todo: IMPLEMENT ME
-  glUniformMatrix4fv(glGetUniformLocation(s_shaderpgm_hdl, "uMVP"), 1, GL_FALSE, glm::value_ptr(s_mvp_xform));
+  
 
   // transfer vertices from server (GPU) buffers to vertex processer which must (at the very least)
   // compute the clip frame coordinates followed by assembly into triangles ...
@@ -646,55 +679,35 @@ void Draw() {
   //@todo: IMPLEMENT ME
   // Draw triangles
   //@todo: IMPLEMENT ME
-  if (model >= 0)
+ // if (model >= 0)
   {
-      //{
-      //    static float arr[18] = { -0.5, 0, -1, 0.0, 0.0, 0.0, 
-      //                    0.5, 0.0, -1, 0.0, 0.0, 0.0,
-      //                    0.0 , 0.5, -1, 0.0, 0.0, 0.0 };
-      //    static GLuint buffer;
-      //    static int value = 1;
-      //
-      //    if (value == 1)
-      //    {
-      //        glGenBuffers(1, &buffer);
-      //        glBindBuffer(GL_ARRAY_BUFFER, buffer);
-      //        glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), arr, GL_STATIC_DRAW);
-      //
-      //        // vertex positions
-      //        glEnableVertexAttribArray(0);
-      //        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 2, (void*)0);
-      //        // vertex color
-      //        glEnableVertexAttribArray(1);
-      //        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3) * 2, (void*)sizeof(glm::vec3));
-      //
-      //        value = 0;
-      //    }
-      //
-      //    {
-      //        glBindBuffer(GL_ARRAY_BUFFER, buffer);
-      //        glDrawArrays(GL_TRIANGLES, 0, 3);
-      //    }
-      //}
-
-
-      glBindVertexArray(ObjectList[model].s_vao_hdl);
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ObjectList[model].s_ebo_hdl);
-      glDrawElements(ObjectList[model].ModelDrawMethod, ObjectList[model].allIndices.size(), GL_UNSIGNED_INT, 0);
-
-      // programming tip: always reset state - application will be easier to debug ...
-      //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-      glBindVertexArray(0);
-     // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-      glUseProgram(0);
-
-      if (drawNormals)
       {
-          // use program to draw normals here
-          //@todo: IMPLEMENT ME
-          glBindVertexArray(ObjectList[model].s_vao_hdl);
-          glDrawArrays(ObjectList[model].NormalDrawMethod, 0, ObjectList[model].allVertexNormals.size());
+         
+      
+          {
+              glBindBuffer(GL_ARRAY_BUFFER, buffer);
+              glDrawArrays(GL_TRIANGLES, 0, 3);
+          }
       }
+
+
+    //  glBindVertexArray(ObjectList[model].s_vao_hdl);
+    //// glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ObjectList[model].s_ebo_hdl);
+    //  glDrawElements(ObjectList[model].ModelDrawMethod, ObjectList[model].allIndices.size(), GL_UNSIGNED_INT, 0);
+
+    //  // programming tip: always reset state - application will be easier to debug ...
+    //  //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    //  glBindVertexArray(0);
+    // // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    //  glUseProgram(0);
+
+    //  if (drawNormals)
+    //  {
+    //      // use program to draw normals here
+    //      //@todo: IMPLEMENT ME
+    //      glBindVertexArray(ObjectList[model].s_vao_hdl);
+    //      glDrawArrays(ObjectList[model].NormalDrawMethod, 0, ObjectList[model].allVertexNormals.size());
+    //  }
   }
 }
 

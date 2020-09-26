@@ -1,0 +1,14 @@
+﻿  main.cpp
+C:\Users\yimin\Documents\GitHub\cs250-Assignments\A1_Framework\Assignment1\main.cpp(193,23): warning C4018: '<': signed/unsigned mismatch
+C:\Users\yimin\Documents\GitHub\cs250-Assignments\A1_Framework\Assignment1\main.cpp(249,23): warning C4018: '<': signed/unsigned mismatch
+C:\Users\yimin\Documents\GitHub\cs250-Assignments\A1_Framework\Assignment1\main.cpp(400,42): warning C4244: 'argument': conversion from 'float' to 'const _Ty', possible loss of data
+          with
+          [
+              _Ty=int
+          ]
+C:\Users\yimin\Documents\GitHub\cs250-Assignments\A1_Framework\Assignment1\main.cpp(428,39): warning C4018: '<': signed/unsigned mismatch
+C:\Users\yimin\Documents\GitHub\cs250-Assignments\A1_Framework\Assignment1\main.cpp(434,27): warning C4018: '<': signed/unsigned mismatch
+  Assignment1.vcxproj -> C:\Users\yimin\Documents\GitHub\cs250-Assignments\A1_Framework\Debug\Assignment1.exe
+          1 file(s) copied.
+          1 file(s) copied.
+          1 file(s) copied.
